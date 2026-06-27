@@ -115,7 +115,7 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
   return (
     <>
     <div className="page">
-      {/* Form + OCR (integrated) */}
+      {/* Form card with OCR button in title */}
       <div className="card">
         <div className="card-title">
           <span>✏️</span> 入力フォーム
@@ -142,22 +142,18 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
           />
         </div>
 
-        {/* OCR result (compact, shown when available) */}
+        {/* OCR compact result */}
         {(receiptImageUrl || receiptText) && (
           <div className="ocr-compact">
-            {receiptImageUrl && (
-              <img src={receiptImageUrl} alt="レシート" className="ocr-thumb" />
-            )}
-            {receiptText && (
-              <pre className="ocr-text-compact">{receiptText}</pre>
-            )}
+            {receiptImageUrl && <img src={receiptImageUrl} alt="レシート" className="ocr-thumb" />}
+            {receiptText && <pre className="ocr-text-compact">{receiptText}</pre>}
           </div>
         )}
 
         <div className="form-grid">
           <div className="field-row">
             <label className="field-label">
-              日付
+              <span className="label-txt">日付</span>
               <div className="date-wrapper">
                 <input
                   ref={dateRef}
@@ -168,7 +164,7 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
                   className="field-input date-input"
                 />
                 <button type="button" className="calendar-btn" onClick={openDatePicker} aria-label="カレンダーを開く">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                     <line x1="16" y1="2" x2="16" y2="6" />
                     <line x1="8" y1="2" x2="8" y2="6" />
@@ -178,7 +174,7 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
               </div>
             </label>
             <label className="field-label">
-              入出金
+              <span className="label-txt">種別</span>
               <select name="type" value={form.type} onChange={handleChange} className="field-input">
                 <option value="支出">支出</option>
                 <option value="収入">収入</option>
@@ -187,18 +183,18 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
           </div>
           <div className="field-row">
             <label className="field-label">
-              科目
+              <span className="label-txt">科目</span>
               <select name="category" value={form.category} onChange={handleChange} className="field-input">
-                <option value="">科目を選択</option>
+                <option value="">選択</option>
                 {sortedCategories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
             </label>
             <label className="field-label">
-              小分類
+              <span className="label-txt">分類</span>
               <select name="subcategory" value={form.subcategory} onChange={handleChange} className="field-input" disabled={!form.category}>
-                <option value="">{form.category ? '小分類を選択' : '科目を先に選択'}</option>
+                <option value="">{form.category ? '選択' : '先に科目'}</option>
                 {subcategories.map((sub) => (
                   <option key={sub} value={sub}>{sub}</option>
                 ))}
@@ -207,7 +203,7 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
           </div>
           <div className="field-row">
             <label className="field-label">
-              金額（円）
+              <span className="label-txt">金額</span>
               <input
                 type="number"
                 name="amount"
@@ -220,7 +216,7 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
               />
             </label>
             <label className="field-label">
-              資産
+              <span className="label-txt">資産</span>
               <select name="asset" value={form.asset} onChange={handleChange} className="field-input">
                 {DEFAULT_ASSET_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
@@ -229,14 +225,14 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
             </label>
           </div>
           <label className="field-label">
-            内容
+            <span className="label-txt">内容</span>
             <input
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="例：コンビニ、スーパー"
+              placeholder="コンビニ、スーパー…"
               className="field-input"
-              list="description-list"
+              list={form.description.length > 0 ? 'description-list' : undefined}
               autoComplete="off"
             />
             <datalist id="description-list">
@@ -246,7 +242,7 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
             </datalist>
           </label>
           <label className="field-label">
-            メモ
+            <span className="label-txt">メモ</span>
             <textarea name="memo" value={form.memo} onChange={handleChange} rows={1} placeholder="任意" className="field-input" />
           </label>
         </div>
@@ -258,7 +254,6 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
           <span>📋</span> {now.getMonth() + 1}月の記録
         </div>
 
-        {/* Month summary */}
         <div className="summary-row" style={{ marginBottom: '12px' }}>
           <div className="summary-card income-card">
             <div className="summary-label">収入</div>
@@ -277,7 +272,7 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
         </div>
 
         {currentMonthEntries.length === 0 ? (
-          <div className="empty-state" style={{ padding: '20px 0' }}>
+          <div className="empty-state" style={{ padding: '16px 0' }}>
             <p>今月のデータがまだありません</p>
           </div>
         ) : (

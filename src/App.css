@@ -34,7 +34,8 @@
   --expense:     #f43f5e;
   --expense-bg:  rgba(244, 63, 94, 0.12);
 
-  min-height: 100svh;
+  height: 100svh;
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
   display: flex;
@@ -51,16 +52,15 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 12px 16px 10px;
+  padding: 10px 16px 8px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 100;
 }
 
 .app-title {
-  font-size: 1.6rem;
+  font-size: 1.85rem;
   font-weight: 900;
   color: var(--text);
   letter-spacing: -0.04em;
@@ -163,10 +163,15 @@
 .header-bottom-row {
   display: flex;
   align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
   gap: 12px;
 }
 
 .logout-btn {
+  position: absolute;
+  right: 0;
   background: none;
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -216,8 +221,10 @@
 /* ===== Main Content ===== */
 .main-content {
   flex: 1;
-  padding: 10px 12px 130px; /* space for save-bar + nav */
+  min-height: 0; /* crucial for flex overflow-y */
+  padding: 10px 12px 130px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .page {
@@ -325,14 +332,19 @@
 }
 
 .field-label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 0.76rem;
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 6px;
+}
+
+.label-txt {
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-dim);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+  line-height: 1.2;
 }
 
 .field-input {
@@ -1007,20 +1019,31 @@ tr[data-type='収入'] .amount-cell { color: var(--income);  }
 /* ===== Fixed Save Bar ===== */
 .save-bar {
   position: fixed;
-  bottom: 56px; /* nav bar height */
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
+  bottom: 56px;
+  left: 0;
+  right: 0;
   max-width: 600px;
+  margin: 0 auto;
   display: flex;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 8px 10px;
   background: var(--surface);
   border-top: 1px solid var(--border);
   z-index: 99;
 }
 
-.save-bar-btn { flex: 1; }
+.save-bar-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 10px;
+  font-size: 0.88rem;
+}
+
+.save-bar .btn-cancel {
+  padding: 9px 10px;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+}
 
 /* ===== Bottom Nav ===== */
 .nav-bar {
@@ -1029,10 +1052,10 @@ tr[data-type='収入'] .amount-cell { color: var(--income);  }
   border-top: 1px solid var(--border);
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
+  left: 0;
+  right: 0;
   max-width: 600px;
+  margin: 0 auto;
   z-index: 100;
 }
 
