@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../supabase'
+import dogImg from '../assets/dog.png'
 
 export default function Login() {
   const [email, setEmail]       = useState('')
@@ -19,7 +20,7 @@ export default function Login() {
   const handleResetPassword = async () => {
     if (!email) { setError('メールアドレスを入力してからリセットしてください。'); return }
     setLoading(true)
-    const redirectTo = `${window.location.origin}/kakeibo-app/`
+    const redirectTo = `${window.location.origin}/Kakeibo-app/`
     await supabase.auth.resetPasswordForEmail(email, { redirectTo })
     setLoading(false)
     setResetSent(true)
@@ -29,7 +30,7 @@ export default function Login() {
     <div className="login-shell">
       <div className="login-card">
         <div className="login-header">
-          <img src="/kakeibo-app/dog.png" alt="" className="login-dog" aria-hidden="true" />
+          <img src={dogImg} alt="" className="login-dog" aria-hidden="true" />
           <h1 className="login-title">Kakeibo</h1>
           <p className="login-sub">ログインしてください</p>
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
+import dogImg from './assets/dog.png'
 import { supabase } from './supabase'
 import type { CategoryMap, ColorTheme, KakeiboEntry, PageId } from './types'
 import { loadCategoryMap, loadEntries, loadTheme, saveCategoryMap, saveEntries, saveTheme } from './storage'
@@ -116,7 +117,7 @@ export default function App() {
       {/* ===== Header ===== */}
       <header className="app-header">
         <span className="app-title">Kakeibo</span>
-        <img src="/kakeibo-app/dog.png" alt="" className="header-dog" aria-hidden="true" />
+        <img src={dogImg} alt="" className="header-dog" aria-hidden="true" />
         <div className="header-bottom-row">
           <div className="theme-picker">
             {THEMES.map(({ id, label, color }) => (
