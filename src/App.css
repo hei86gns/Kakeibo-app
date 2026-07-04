@@ -233,16 +233,19 @@
 .main-content {
   flex: 1;
   min-height: 0; /* crucial for flex overflow-y */
-  padding: 10px 12px 120px;
+  padding: 10px 12px 140px;
   overflow-y: auto;
   overflow-x: hidden;
+  overflow-x: clip; /* iOS 16+: forbids any sideways panning, not just clipping */
   /* vertical panning only — stops sideways wobble on iOS */
   touch-action: pan-y pinch-zoom;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
 }
 
 .table-wrap {
-  touch-action: auto; /* tables may still scroll sideways inside their box */
+  touch-action: pan-x pan-y; /* tables may still scroll sideways inside their box */
+  overscroll-behavior-x: contain; /* but the drag never chains to the page */
 }
 
 .page {
@@ -1162,6 +1165,13 @@ tr.editing-row td { background: var(--primary-sub); }
 
 .danger-card { border-color: rgba(244, 63, 94, 0.18); }
 
+.app-version {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
 /* ===== Empty State ===== */
 .empty-state {
   text-align: center;
@@ -1174,7 +1184,7 @@ tr.editing-row td { background: var(--primary-sub); }
 /* ===== Fixed Save Bar ===== */
 .save-bar {
   position: fixed;
-  bottom: 56px;
+  bottom: calc(68px + env(safe-area-inset-bottom));
   left: 0;
   right: 0;
   max-width: 600px;
@@ -1222,6 +1232,8 @@ tr.editing-row td { background: var(--primary-sub); }
   max-width: 600px;
   margin: 0 auto;
   z-index: 100;
+  height: calc(68px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .nav-item {
@@ -1229,8 +1241,9 @@ tr.editing-row td { background: var(--primary-sub); }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 10px 6px 14px;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
   background: none;
   border: none;
   cursor: pointer;
@@ -1240,8 +1253,8 @@ tr.editing-row td { background: var(--primary-sub); }
 
 .nav-item.active { color: var(--primary); }
 
-.nav-icon  { font-size: 1.25rem; line-height: 1; }
-.nav-label { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.03em; }
+.nav-icon  { font-size: 1.45rem; line-height: 1; }
+.nav-label { font-size: 0.73rem; font-weight: 600; letter-spacing: 0.03em; }
 
 /* ===== Desktop ===== */
 @media (min-width: 600px) {
