@@ -17,6 +17,7 @@ type Props = {
   onEndEdit: () => void
   presetDate: string | null
   onPresetConsumed: () => void
+  onCancelled: () => void
   setMessage: (msg: string) => void
 }
 
@@ -36,7 +37,7 @@ const scrollTop = () => document.querySelector('.main-content')?.scrollTo({ top:
 
 export default function Home({
   onAdd, onUpdate, categoryMap, sortedCategories, descriptions, entries,
-  onDelete, editingEntry, onStartEdit, onEndEdit, presetDate, onPresetConsumed, setMessage,
+  onDelete, editingEntry, onStartEdit, onEndEdit, presetDate, onPresetConsumed, onCancelled, setMessage,
 }: Props) {
   const [form, setForm] = useState(getInitialForm)
   const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(null)
@@ -155,6 +156,7 @@ export default function Home({
     setForm(getInitialForm())
     setReceiptImageUrl(null)
     setReceiptText('')
+    onCancelled()
   }
 
   return (
@@ -277,13 +279,16 @@ export default function Home({
               onChange={handleChange}
               placeholder="コンビニ、スーパー…"
               className="field-input"
-              list={form.description.length > 0 ? 'description-list' : undefined}
+              list="description-list"
               autoComplete="off"
             />
+            {/* Options exist only after typing, so no big list pops up on focus */}
             <datalist id="description-list">
-              {descriptions.map((d) => (
-                <option key={d} value={d} />
-              ))}
+              {form.description.length > 0 &&
+                descriptions
+                  .filter((d) => d.includes(form.description))
+                  .slice(0, 8)
+                  .map((d) => <option key={d} value={d} />)}
             </datalist>
           </label>
           <label className="field-label">
@@ -335,7 +340,12 @@ export default function Home({
               </thead>
               <tbody>
                 {currentMonthEntries.map((entry) => (
-                  <tr key={entry.id} data-type={entry.type}>
+                  <tr
+                    key={entry.id}
+                    data-type={entry.type}
+                    className={`tappable ${editingEntry?.id === entry.id ? 'editing-row' : ''}`}
+                    onClick={() => onStartEdit(entry)}
+                  >
                     <td>{entry.date.slice(5)}</td>
                     <td>{entry.category}</td>
                     <td>{entry.description}</td>
@@ -348,14 +358,9 @@ export default function Home({
                     <td className="row-actions">
                       <button
                         type="button"
-                        className="edit-btn"
-                        onClick={() => onStartEdit(entry)}
-                        aria-label="編集"
-                      >✎</button>
-                      <button
-                        type="button"
                         className="delete-btn"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation()
                           if (window.confirm('この項目を削除してもよいですか？')) onDelete(entry.id)
                         }}
                         aria-label="削除"
