@@ -50,11 +50,25 @@ export default function Data({ entries, categoryMap, onImport, onCategoryMapChan
       const rows = XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheet], { header: 1, defval: '' })
       if (rows.length < 2) { setMessage('インポートできるデータが見つかりませんでした。'); return }
       const headerMap = (rows[0] as unknown[]).map((c) => normalizeHeader(String(c || '')))
-      const expected = Object.fromEntries(
-        Object.entries(COLUMNS).map(([k, v]) => [k, normalizeHeader(v)])
-      ) as Record<keyof typeof COLUMNS, string>
+      // Accept both らくな家計簿 headers and this app's own CSV export headers
+      const aliases: Record<keyof typeof COLUMNS, string[]> = {
+        period:      ['期間', '日付'],
+        asset:       ['資産'],
+        category:    ['分類', '科目'],
+        subcategory: ['小分類'],
+        description: ['内容'],
+        amount:      ['金額'],
+        type:        ['収入/支出', '入出金', '種別'],
+        memo:        ['メモ'],
+        currency:    ['通貨'],
+      }
       const idx = Object.fromEntries(
-        Object.entries(expected).map(([k, v]) => [k, headerMap.indexOf(v)])
+        Object.entries(aliases).map(([k, names]) => {
+          const found = names
+            .map((n) => headerMap.indexOf(normalizeHeader(n)))
+            .find((i) => i >= 0)
+          return [k, found ?? -1]
+        })
       ) as Record<keyof typeof COLUMNS, number>
       const newEntries: KakeiboEntry[] = []
       for (let i = 1; i < rows.length; i++) {

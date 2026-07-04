@@ -233,9 +233,16 @@
 .main-content {
   flex: 1;
   min-height: 0; /* crucial for flex overflow-y */
-  padding: 10px 12px 130px;
+  padding: 10px 12px 120px;
   overflow-y: auto;
   overflow-x: hidden;
+  /* vertical panning only — stops sideways wobble on iOS */
+  touch-action: pan-y pinch-zoom;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrap {
+  touch-action: auto; /* tables may still scroll sideways inside their box */
 }
 
 .page {
@@ -697,6 +704,10 @@ tr[data-type='収入'] .amount-cell { color: var(--income);  }
   white-space: nowrap;
   text-align: right;
 }
+
+tr.tappable { cursor: pointer; }
+
+tr.editing-row td { background: var(--primary-sub); }
 
 .edit-btn {
   background: none;
@@ -1179,13 +1190,16 @@ tr[data-type='収入'] .amount-cell { color: var(--income);  }
 .save-bar-btn {
   flex: 1;
   min-width: 0;
-  padding: 11px 10px;
-  font-size: 0.88rem;
+  padding: 8px 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  box-shadow: none;
+  opacity: 0.92;
 }
 
 .save-bar .btn-cancel {
-  padding: 9px 10px;
-  font-size: 0.82rem;
+  padding: 8px 12px;
+  font-size: 0.8rem;
   flex-shrink: 0;
 }
 

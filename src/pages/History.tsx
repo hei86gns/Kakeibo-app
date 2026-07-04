@@ -86,7 +86,12 @@ export default function History({ entries, onDelete, onEdit }: Props) {
               </thead>
               <tbody>
                 {filtered.map((entry) => (
-                  <tr key={entry.id} data-type={entry.type}>
+                  <tr
+                    key={entry.id}
+                    data-type={entry.type}
+                    className="tappable"
+                    onClick={() => onEdit(entry)}
+                  >
                     <td>{entry.date}</td>
                     <td>{entry.category}</td>
                     <td>{entry.subcategory}</td>
@@ -100,14 +105,9 @@ export default function History({ entries, onDelete, onEdit }: Props) {
                     <td className="row-actions">
                       <button
                         type="button"
-                        className="edit-btn"
-                        onClick={() => onEdit(entry)}
-                        aria-label="編集"
-                      >✎</button>
-                      <button
-                        type="button"
                         className="delete-btn"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation()
                           if (window.confirm('この項目を削除してもよいですか？')) onDelete(entry.id)
                         }}
                         aria-label="削除"

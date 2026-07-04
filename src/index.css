@@ -2,29 +2,29 @@
   box-sizing: border-box;
 }
 
-html, body {
-  overflow-x: hidden;
-  max-width: 100%;
-  overscroll-behavior: none;
-}
-
 html {
   height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
   margin: 0;
-  height: 100%;
+  /* Lock the page itself so iOS can never rubber-band it sideways */
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  width: 100%;
+  overscroll-behavior: none;
   background: #0d0f1a;
   font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   color: #e2e8f0;
-  /* iOS safe areas (notch) */
   padding-top: env(safe-area-inset-top);
 }
 
 #root {
-  min-height: 100svh;
+  height: 100%;
 }
 
 h1, h2, h3 {

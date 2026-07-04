@@ -37,6 +37,7 @@ export default function App() {
   const [message, setMessage]         = useState('')
   const [editingEntry, setEditingEntry] = useState<KakeiboEntry | null>(null)
   const [presetDate, setPresetDate]     = useState<string | null>(null)
+  const [cameFromCalendar, setCameFromCalendar] = useState(false)
 
   // Auth listener
   useEffect(() => {
@@ -104,7 +105,18 @@ export default function App() {
   const handleSelectDate = (date: string) => {
     setPresetDate(date)
     setEditingEntry(null)
+    setCameFromCalendar(true)
     setPage('home')
+  }
+  const handleHomeCancelled = () => {
+    if (cameFromCalendar) {
+      setCameFromCalendar(false)
+      setPage('calendar')
+    }
+  }
+  const handleNav = (id: PageId) => {
+    if (id !== 'home') setCameFromCalendar(false)
+    setPage(id)
   }
   const handleClearAll = () => {
     if (!window.confirm('保存されているすべての家計簿データを削除しますか？\nこの操作は元に戻せません。')) return
@@ -179,6 +191,7 @@ export default function App() {
             onEndEdit={() => setEditingEntry(null)}
             presetDate={presetDate}
             onPresetConsumed={() => setPresetDate(null)}
+            onCancelled={handleHomeCancelled}
             setMessage={setMessage}
           />
         )}
@@ -210,7 +223,7 @@ export default function App() {
             key={id}
             type="button"
             className={`nav-item ${page === id ? 'active' : ''}`}
-            onClick={() => setPage(id)}
+            onClick={() => handleNav(id)}
           >
             <span className="nav-icon">{icon}</span>
             <span className="nav-label">{label}</span>
