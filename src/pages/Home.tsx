@@ -257,6 +257,8 @@ export default function Home({
                 value={form.amount || ''}
                 min="0"
                 placeholder="0"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 onChange={handleChange}
                 onFocus={(e) => e.target.select()}
                 className="field-input"
