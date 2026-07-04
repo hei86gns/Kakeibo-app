@@ -1203,6 +1203,13 @@ tr.editing-row td { background: var(--primary-sub); }
   flex-shrink: 0;
 }
 
+.save-bar-delete {
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  border-radius: 12px;
+}
+
 /* ===== Bottom Nav ===== */
 .nav-bar {
   display: flex;

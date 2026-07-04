@@ -159,6 +159,16 @@ export default function Home({
     onCancelled()
   }
 
+  const handleDeleteEditing = () => {
+    if (!editingEntry) return
+    if (!window.confirm('この記録を削除してもよいですか？')) return
+    onDelete(editingEntry.id)
+    setForm(getInitialForm())
+    setReceiptImageUrl(null)
+    setReceiptText('')
+    setMessage('削除しました。')
+  }
+
   return (
     <>
     <div className="page">
@@ -382,6 +392,11 @@ export default function Home({
       <button type="button" className="btn-cancel" onClick={handleCancel}>
         キャンセル
       </button>
+      {isEditing && (
+        <button type="button" className="btn-danger save-bar-delete" onClick={handleDeleteEditing}>
+          削除
+        </button>
+      )}
       <button type="button" className="btn-primary save-bar-btn" onClick={handleSave} disabled={ocrBusy}>
         {isEditing ? '更新する' : '保存する'}
       </button>
