@@ -5,14 +5,22 @@
 html, body {
   overflow-x: hidden;
   max-width: 100%;
+  overscroll-behavior: none;
+}
+
+html {
+  height: 100%;
 }
 
 body {
   margin: 0;
-  background: #eef2fb;
+  height: 100%;
+  background: #0d0f1a;
   font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
-  color: #1e293b;
+  color: #e2e8f0;
+  /* iOS safe areas (notch) */
+  padding-top: env(safe-area-inset-top);
 }
 
 #root {

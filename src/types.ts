@@ -13,5 +13,5 @@ export type KakeiboEntry = {
 }
 
 export type ColorTheme = 'purple' | 'pink' | 'green' | 'blue'
-export type PageId = 'home' | 'history' | 'stats' | 'data'
+export type PageId = 'home' | 'calendar' | 'history' | 'stats' | 'data'
 export type CategoryMap = Record<string, string[]>

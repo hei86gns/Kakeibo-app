@@ -43,7 +43,7 @@ export default function Login() {
         ) : (
           <>
             <div className="login-fields">
-              <label className="field-label">
+              <label className="login-label">
                 メールアドレス
                 <input
                   type="email"
@@ -55,7 +55,7 @@ export default function Login() {
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 />
               </label>
-              <label className="field-label">
+              <label className="login-label">
                 パスワード
                 <input
                   type="password"
