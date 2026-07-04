@@ -230,6 +230,8 @@ export default function Data({ entries, categoryMap, onImport, onCategoryMapChan
           すべてのデータを削除
         </button>
       </div>
+
+      <p className="app-version">アプリバージョン: {__APP_VERSION__}</p>
     </div>
   )
 }
