@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import Tesseract from 'tesseract.js'
 import type { CategoryMap, KakeiboEntry } from '../types'
 import { DEFAULT_ASSET_OPTIONS } from '../constants'
@@ -6,16 +6,22 @@ import { parseAmountFromText, today } from '../utils'
 
 type Props = {
   onAdd: (entry: KakeiboEntry) => void
+  onUpdate: (entry: KakeiboEntry) => void
   categoryMap: CategoryMap
   sortedCategories: string[]
   descriptions: string[]
   entries: KakeiboEntry[]
   onDelete: (id: string) => void
+  editingEntry: KakeiboEntry | null
+  onStartEdit: (entry: KakeiboEntry) => void
+  onEndEdit: () => void
+  presetDate: string | null
+  onPresetConsumed: () => void
   setMessage: (msg: string) => void
 }
 
-const getInitialForm = () => ({
-  date: today(),
+const getInitialForm = (date?: string) => ({
+  date: date ?? today(),
   asset: '現金',
   category: '',
   subcategory: '',
@@ -26,13 +32,44 @@ const getInitialForm = () => ({
   currency: 'JPY',
 })
 
-export default function Home({ onAdd, categoryMap, sortedCategories, descriptions, entries, onDelete, setMessage }: Props) {
+const scrollTop = () => document.querySelector('.main-content')?.scrollTo({ top: 0, behavior: 'smooth' })
+
+export default function Home({
+  onAdd, onUpdate, categoryMap, sortedCategories, descriptions, entries,
+  onDelete, editingEntry, onStartEdit, onEndEdit, presetDate, onPresetConsumed, setMessage,
+}: Props) {
   const [form, setForm] = useState(getInitialForm)
   const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(null)
   const [receiptText, setReceiptText] = useState('')
   const [ocrBusy, setOcrBusy] = useState(false)
   const dateRef = useRef<HTMLInputElement>(null)
   const ocrInputRef = useRef<HTMLInputElement>(null)
+
+  const isEditing = editingEntry !== null
+
+  // Populate form when an entry is selected for editing
+  useEffect(() => {
+    if (!editingEntry) return
+    setForm({
+      date: editingEntry.date,
+      asset: editingEntry.asset,
+      category: editingEntry.category,
+      subcategory: editingEntry.subcategory,
+      description: editingEntry.description,
+      amount: editingEntry.amount,
+      type: editingEntry.type,
+      memo: editingEntry.memo,
+      currency: editingEntry.currency,
+    })
+    scrollTop()
+  }, [editingEntry])
+
+  // Apply date passed from the calendar page
+  useEffect(() => {
+    if (!presetDate) return
+    setForm((prev) => ({ ...prev, date: presetDate }))
+    onPresetConsumed()
+  }, [presetDate, onPresetConsumed])
 
   const subcategories = form.category ? (categoryMap[form.category] ?? []) : []
 
@@ -99,14 +136,22 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
   }
 
   const handleSave = () => {
-    onAdd({ id: `${Date.now()}`, ...form, source: 'manual' })
-    setMessage('保存しました！')
-    setForm(getInitialForm())
+    if (isEditing && editingEntry) {
+      onUpdate({ ...editingEntry, ...form })
+      onEndEdit()
+      setMessage('更新しました！')
+    } else {
+      onAdd({ id: `${Date.now()}`, ...form, source: 'manual' })
+      setMessage('保存しました！')
+    }
+    // Keep the same date so consecutive entries for one day are quick
+    setForm(getInitialForm(form.date))
     setReceiptImageUrl(null)
     setReceiptText('')
   }
 
   const handleCancel = () => {
+    if (isEditing) onEndEdit()
     setForm(getInitialForm())
     setReceiptImageUrl(null)
     setReceiptText('')
@@ -118,7 +163,7 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
       {/* Form card with OCR button in title */}
       <div className="card">
         <div className="card-title">
-          <span>✏️</span> 入力フォーム
+          <span>{isEditing ? '🖊️' : '✏️'}</span> {isEditing ? '記録を編集中' : '入力フォーム'}
           <button
             type="button"
             className="ocr-inline-btn"
@@ -300,7 +345,13 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
                       </span>
                     </td>
                     <td className="amount-cell">¥{entry.amount.toLocaleString()}</td>
-                    <td>
+                    <td className="row-actions">
+                      <button
+                        type="button"
+                        className="edit-btn"
+                        onClick={() => onStartEdit(entry)}
+                        aria-label="編集"
+                      >✎</button>
                       <button
                         type="button"
                         className="delete-btn"
@@ -325,7 +376,7 @@ export default function Home({ onAdd, categoryMap, sortedCategories, description
         キャンセル
       </button>
       <button type="button" className="btn-primary save-bar-btn" onClick={handleSave} disabled={ocrBusy}>
-        保存する
+        {isEditing ? '更新する' : '保存する'}
       </button>
     </div>
     </>

@@ -6,6 +6,7 @@ import type { CategoryMap, ColorTheme, KakeiboEntry, PageId } from './types'
 import { loadCategoryMap, loadEntries, loadTheme, saveCategoryMap, saveEntries, saveTheme } from './storage'
 import Login from './pages/Login'
 import Home from './pages/Home'
+import Calendar from './pages/Calendar'
 import History from './pages/History'
 import Stats from './pages/Stats'
 import Data from './pages/Data'
@@ -19,10 +20,11 @@ const THEMES: { id: ColorTheme; label: string; color: string }[] = [
 ]
 
 const NAV: { id: PageId; label: string; icon: string }[] = [
-  { id: 'home',    label: 'ホーム', icon: '🏠' },
-  { id: 'history', label: '履歴',   icon: '📋' },
-  { id: 'stats',   label: '統計',   icon: '📊' },
-  { id: 'data',    label: 'データ', icon: '⚙️' },
+  { id: 'home',     label: 'ホーム',     icon: '🏠' },
+  { id: 'calendar', label: 'カレンダー', icon: '📅' },
+  { id: 'history',  label: '履歴',       icon: '📋' },
+  { id: 'stats',    label: '統計',       icon: '📊' },
+  { id: 'data',     label: 'データ',     icon: '⚙️' },
 ]
 
 export default function App() {
@@ -33,6 +35,8 @@ export default function App() {
   const [theme, setTheme]             = useState<ColorTheme>(() => loadTheme())
   const [page, setPage]               = useState<PageId>('home')
   const [message, setMessage]         = useState('')
+  const [editingEntry, setEditingEntry] = useState<KakeiboEntry | null>(null)
+  const [presetDate, setPresetDate]     = useState<string | null>(null)
 
   // Auth listener
   useEffect(() => {
@@ -86,8 +90,22 @@ export default function App() {
 
   const handleTheme = (t: ColorTheme) => { setTheme(t); saveTheme(t) }
   const handleAdd    = (e: KakeiboEntry) => setEntries((prev) => [e, ...prev])
-  const handleDelete = (id: string) => setEntries((prev) => prev.filter((e) => e.id !== id))
+  const handleUpdate = (updated: KakeiboEntry) =>
+    setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+  const handleDelete = (id: string) => {
+    setEntries((prev) => prev.filter((e) => e.id !== id))
+    if (editingEntry?.id === id) setEditingEntry(null)
+  }
   const handleImport = (newEntries: KakeiboEntry[]) => setEntries((prev) => [...prev, ...newEntries])
+  const handleStartEdit = (entry: KakeiboEntry) => {
+    setEditingEntry(entry)
+    setPage('home')
+  }
+  const handleSelectDate = (date: string) => {
+    setPresetDate(date)
+    setEditingEntry(null)
+    setPage('home')
+  }
   const handleClearAll = () => {
     if (!window.confirm('保存されているすべての家計簿データを削除しますか？\nこの操作は元に戻せません。')) return
     setEntries([])
@@ -150,16 +168,25 @@ export default function App() {
         {page === 'home' && (
           <Home
             onAdd={handleAdd}
+            onUpdate={handleUpdate}
             categoryMap={categoryMap}
             sortedCategories={sortedCategories}
             descriptions={descriptions}
             entries={entries}
             onDelete={handleDelete}
+            editingEntry={editingEntry}
+            onStartEdit={handleStartEdit}
+            onEndEdit={() => setEditingEntry(null)}
+            presetDate={presetDate}
+            onPresetConsumed={() => setPresetDate(null)}
             setMessage={setMessage}
           />
         )}
+        {page === 'calendar' && (
+          <Calendar entries={entries} onSelectDate={handleSelectDate} />
+        )}
         {page === 'history' && (
-          <History entries={entries} onDelete={handleDelete} />
+          <History entries={entries} onDelete={handleDelete} onEdit={handleStartEdit} />
         )}
         {page === 'stats' && (
           <Stats entries={entries} />

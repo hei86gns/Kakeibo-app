@@ -21,7 +21,8 @@
 }
 
 /* ===== Dark Base ===== */
-.app-shell {
+.app-shell,
+.login-shell {
   --bg:          #0d0f1a;
   --surface:     #161928;
   --surface-2:   #1c2037;
@@ -127,6 +128,16 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.login-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
 }
 
 .login-error {
@@ -681,6 +692,139 @@ tr[data-type='収入'] .amount-cell { color: var(--income);  }
 }
 
 .delete-btn:hover { background: var(--expense-bg); color: var(--expense); }
+
+.row-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: all 0.13s;
+  line-height: 1;
+}
+
+.edit-btn:hover { background: var(--primary-sub); color: var(--primary); }
+
+/* ===== Calendar Page ===== */
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.cal-nav-btn {
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+
+.cal-nav-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+.cal-title {
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.02rem;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.cal-title:hover { background: var(--surface-2); }
+
+.cal-card { padding: 12px 8px 10px; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.cal-weekdays { margin-bottom: 4px; }
+
+.cal-weekday {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.cal-weekday.sun { color: var(--expense); }
+.cal-weekday.sat { color: #60a5fa; }
+
+.cal-cell {
+  min-height: 52px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 3px 1px;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.13s, background 0.13s;
+}
+
+.cal-cell:hover { border-color: var(--primary); }
+
+.cal-cell.blank {
+  background: none;
+  cursor: default;
+  border: none;
+}
+
+.cal-cell.today {
+  border-color: var(--primary);
+  background: var(--primary-sub);
+}
+
+.cal-day {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.cal-day.sun { color: var(--expense); }
+.cal-day.sat { color: #60a5fa; }
+
+.cal-amt {
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-hint {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
 
 /* ===== Stats ===== */
 .stats-controls {

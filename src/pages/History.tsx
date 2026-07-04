@@ -4,9 +4,10 @@ import type { KakeiboEntry } from '../types'
 type Props = {
   entries: KakeiboEntry[]
   onDelete: (id: string) => void
+  onEdit: (entry: KakeiboEntry) => void
 }
 
-export default function History({ entries, onDelete }: Props) {
+export default function History({ entries, onDelete, onEdit }: Props) {
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -96,7 +97,13 @@ export default function History({ entries, onDelete }: Props) {
                       </span>
                     </td>
                     <td className="amount-cell">¥{entry.amount.toLocaleString()}</td>
-                    <td>
+                    <td className="row-actions">
+                      <button
+                        type="button"
+                        className="edit-btn"
+                        onClick={() => onEdit(entry)}
+                        aria-label="編集"
+                      >✎</button>
                       <button
                         type="button"
                         className="delete-btn"
