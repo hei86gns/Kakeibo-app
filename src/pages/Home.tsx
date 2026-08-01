@@ -43,6 +43,7 @@ export default function Home({
   const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(null)
   const [receiptText, setReceiptText] = useState('')
   const [ocrBusy, setOcrBusy] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const dateRef = useRef<HTMLInputElement>(null)
   const ocrInputRef = useRef<HTMLInputElement>(null)
 
@@ -73,6 +74,15 @@ export default function Home({
   }, [presetDate, onPresetConsumed])
 
   const subcategories = form.category ? (categoryMap[form.category] ?? []) : []
+
+  const descriptionSuggestions = useMemo(() => {
+    const q = form.description.trim()
+    if (!q) return []
+    // prefix matches first (most relevant), then anywhere-matches, current value itself excluded
+    const starts = descriptions.filter((d) => d !== q && d.startsWith(q))
+    const contains = descriptions.filter((d) => d !== q && !d.startsWith(q) && d.includes(q))
+    return [...starts, ...contains].slice(0, 6)
+  }, [descriptions, form.description])
 
   const now = new Date()
   const currentMonthEntries = useMemo(
@@ -285,23 +295,37 @@ export default function Home({
           </div>
           <label className="field-label">
             <span className="label-txt">内容</span>
-            <input
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              placeholder="コンビニ、スーパー…"
-              className="field-input"
-              list="description-list"
-              autoComplete="off"
-            />
-            {/* Options exist only after typing, so no big list pops up on focus */}
-            <datalist id="description-list">
-              {form.description.length > 0 &&
-                descriptions
-                  .filter((d) => d.includes(form.description))
-                  .slice(0, 8)
-                  .map((d) => <option key={d} value={d} />)}
-            </datalist>
+            <div className="autocomplete-wrap">
+              <input
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                placeholder="コンビニ、スーパー…"
+                className="field-input"
+                autoComplete="off"
+              />
+              {showSuggestions && descriptionSuggestions.length > 0 && (
+                <ul className="suggestion-list">
+                  {descriptionSuggestions.map((d) => (
+                    <li key={d}>
+                      <button
+                        type="button"
+                        className="suggestion-item"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setForm((prev) => ({ ...prev, description: d }))
+                          setShowSuggestions(false)
+                        }}
+                      >
+                        {d}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </label>
           <label className="field-label">
             <span className="label-txt">メモ</span>
