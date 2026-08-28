@@ -1207,6 +1207,16 @@ tr.editing-row td { background: var(--primary-sub); }
 
 .danger-card { border-color: rgba(244, 63, 94, 0.18); }
 
+.account-card { border-color: var(--primary); }
+
+.account-email {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 8px;
+  word-break: break-all;
+}
+
 .app-version {
   text-align: center;
   font-size: 0.7rem;

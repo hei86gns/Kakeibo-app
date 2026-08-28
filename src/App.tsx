@@ -339,6 +339,7 @@ export default function App() {
               <Data
                 entries={entries}
                 categoryMap={categoryMap}
+                userEmail={user.email ?? null}
                 onImport={handleImport}
                 onCategoryMapChange={handleCategoryMapChange}
                 onClearAll={handleClearAll}

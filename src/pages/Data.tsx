@@ -11,6 +11,7 @@ const COLUMNS = {
 type Props = {
   entries: KakeiboEntry[]
   categoryMap: CategoryMap
+  userEmail: string | null
   onImport: (entries: KakeiboEntry[]) => void
   onCategoryMapChange: (map: CategoryMap) => void
   onClearAll: () => void
@@ -36,7 +37,7 @@ const handleExport = (entries: KakeiboEntry[]) => {
   URL.revokeObjectURL(url)
 }
 
-export default function Data({ entries, categoryMap, onImport, onCategoryMapChange, onClearAll, onMigrateLocal, setMessage }: Props) {
+export default function Data({ entries, categoryMap, userEmail, onImport, onCategoryMapChange, onClearAll, onMigrateLocal, setMessage }: Props) {
   const [newCat, setNewCat] = useState('')
   const [selectedCat, setSelectedCat] = useState('')
   const [newSub, setNewSub] = useState('')
@@ -129,6 +130,15 @@ export default function Data({ entries, categoryMap, onImport, onCategoryMapChan
 
   return (
     <div className="page">
+      {/* Current account — helps confirm the same account is used across devices */}
+      <div className="card account-card">
+        <div className="card-title"><span>👤</span> ログイン中のアカウント</div>
+        <p className="account-email">{userEmail ?? '不明'}</p>
+        <p className="card-desc" style={{ marginBottom: 0 }}>
+          複数の端末・ブラウザでデータが違って見えるときは、まずここが全て同じメールアドレスになっているか確認してください。
+        </p>
+      </div>
+
       {/* Category management */}
       <div className="card">
         <div className="card-title"><span>🏷️</span> 科目・小分類の管理</div>
