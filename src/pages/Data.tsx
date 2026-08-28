@@ -37,10 +37,14 @@ const handleExport = (entries: KakeiboEntry[]) => {
   URL.revokeObjectURL(url)
 }
 
+const DELETE_CONFIRM_WORD = '削除'
+
 export default function Data({ entries, categoryMap, userEmail, onImport, onCategoryMapChange, onClearAll, onMigrateLocal, setMessage }: Props) {
   const [newCat, setNewCat] = useState('')
   const [selectedCat, setSelectedCat] = useState('')
   const [newSub, setNewSub] = useState('')
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
 
   const handleImport = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -250,12 +254,55 @@ export default function Data({ entries, categoryMap, userEmail, onImport, onCate
       {/* Danger zone */}
       <div className="card danger-card">
         <div className="card-title"><span>⚠️</span> データ管理</div>
-        <button type="button" className="btn-danger" onClick={onClearAll}>
+        <button
+          type="button"
+          className="btn-danger"
+          onClick={() => { setConfirmText(''); setConfirmOpen(true) }}
+        >
           すべてのデータを削除
         </button>
       </div>
 
       <p className="app-version">アプリバージョン: {__APP_VERSION__}</p>
+
+      {confirmOpen && (
+        <div className="modal-overlay" onClick={() => setConfirmOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon">⚠️</div>
+            <h3 className="modal-title">本当に削除しますか？</h3>
+            <p className="modal-desc">
+              現在の <strong>{entries.length} 件</strong> のデータがすべて完全に削除されます。<br />
+              <strong>この操作は取り消せません。</strong>
+            </p>
+            <p className="modal-desc">
+              続ける場合は、下の欄に「{DELETE_CONFIRM_WORD}」と入力してください。
+            </p>
+            <input
+              className="field-input"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={DELETE_CONFIRM_WORD}
+              autoFocus
+            />
+            <div className="modal-actions">
+              <button type="button" className="btn-cancel" onClick={() => setConfirmOpen(false)}>
+                キャンセル
+              </button>
+              <button
+                type="button"
+                className="btn-danger"
+                disabled={confirmText !== DELETE_CONFIRM_WORD}
+                onClick={() => {
+                  onClearAll()
+                  setConfirmOpen(false)
+                }}
+              >
+                完全に削除する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

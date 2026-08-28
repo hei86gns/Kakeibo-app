@@ -1224,6 +1224,70 @@ tr.editing-row td { background: var(--primary-sub); }
   padding: 4px 0;
 }
 
+/* ===== Confirmation Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--surface);
+  border: 1.5px solid var(--expense);
+  border-radius: 18px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-icon {
+  font-size: 1.8rem;
+  text-align: center;
+}
+
+.modal-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+  text-align: center;
+  margin: 0;
+}
+
+.modal-desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin: 0;
+  text-align: center;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.modal-actions .btn-cancel,
+.modal-actions .btn-danger {
+  flex: 1;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+}
+
+.modal-actions .btn-danger:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .page-loading {
   text-align: center;
   padding: 60px 16px;
