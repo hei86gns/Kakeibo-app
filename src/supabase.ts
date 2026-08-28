@@ -9,4 +9,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Several apps (tangocho, HealthDashboard, …) share this Supabase
+    // project and are all hosted under the same GitHub Pages origin
+    // (hei86gns.github.io), so localStorage is shared between them by
+    // default. Without a unique key here, logging into one app can
+    // silently overwrite another's session in the same browser.
+    storageKey: 'sb-kakeibo-auth-token',
+  },
+})
