@@ -14,6 +14,7 @@ type Props = {
   onImport: (entries: KakeiboEntry[]) => void
   onCategoryMapChange: (map: CategoryMap) => void
   onClearAll: () => void
+  onMigrateLocal: () => void
   setMessage: (msg: string) => void
 }
 
@@ -35,7 +36,7 @@ const handleExport = (entries: KakeiboEntry[]) => {
   URL.revokeObjectURL(url)
 }
 
-export default function Data({ entries, categoryMap, onImport, onCategoryMapChange, onClearAll, setMessage }: Props) {
+export default function Data({ entries, categoryMap, onImport, onCategoryMapChange, onClearAll, onMigrateLocal, setMessage }: Props) {
   const [newCat, setNewCat] = useState('')
   const [selectedCat, setSelectedCat] = useState('')
   const [newSub, setNewSub] = useState('')
@@ -76,7 +77,7 @@ export default function Data({ entries, categoryMap, onImport, onCategoryMapChan
         const raw = row[idx.amount]
         const parsed = Number(String(raw).replace(/[,¥\s]/g, ''))
         newEntries.push({
-          id: `${Date.now()}-${i}`,
+          id: crypto.randomUUID(),
           date: parseExcelDate(row[idx.period]),
           asset: String(row[idx.asset] ?? '').trim() || '現金',
           category: String(row[idx.category] ?? '').trim(),
@@ -220,6 +221,19 @@ export default function Data({ entries, categoryMap, onImport, onCategoryMapChan
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
           <span>CSV でダウンロード</span>
+        </button>
+      </div>
+
+      {/* Cloud migration */}
+      <div className="card">
+        <div className="card-title"><span>☁️</span> このブラウザのデータをクラウドへ</div>
+        <p className="card-desc">
+          データは現在クラウド（Supabase）に保存され、どの端末・ブラウザからログインしても同じデータが見えます。
+          もしこのブラウザだけに残っている古いデータがある場合、下のボタンで今のクラウドデータに追加できます
+          （すでにクラウドにある記録は重複して追加されません）。
+        </p>
+        <button type="button" className="btn-secondary" onClick={onMigrateLocal}>
+          このブラウザのローカルデータを移行
         </button>
       </div>
 

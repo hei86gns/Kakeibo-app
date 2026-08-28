@@ -48,6 +48,32 @@ export default function Home({
   const ocrInputRef = useRef<HTMLInputElement>(null)
 
   const isEditing = editingEntry !== null
+  const lastKnownDayRef = useRef(today())
+
+  // iOS keeps this page alive in memory when backgrounded rather than
+  // reloading it, so a date typed yesterday can silently linger past
+  // midnight. Whenever the app becomes visible again, snap the date
+  // field back to the real "today" if the calendar day has changed —
+  // but never touch it mid-edit of an existing entry.
+  useEffect(() => {
+    const checkDayRollover = () => {
+      const now = today()
+      if (now !== lastKnownDayRef.current) {
+        lastKnownDayRef.current = now
+        if (!isEditing) {
+          setForm((prev) => ({ ...prev, date: now }))
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', checkDayRollover)
+    window.addEventListener('pageshow', checkDayRollover)
+    window.addEventListener('focus', checkDayRollover)
+    return () => {
+      document.removeEventListener('visibilitychange', checkDayRollover)
+      window.removeEventListener('pageshow', checkDayRollover)
+      window.removeEventListener('focus', checkDayRollover)
+    }
+  }, [isEditing])
 
   // Populate form when an entry is selected for editing
   useEffect(() => {
@@ -152,7 +178,7 @@ export default function Home({
       onEndEdit()
       setMessage('更新しました！')
     } else {
-      onAdd({ id: `${Date.now()}`, ...form, source: 'manual' })
+      onAdd({ id: crypto.randomUUID(), ...form, source: 'manual' })
       setMessage('保存しました！')
     }
     // Keep the same date so consecutive entries for one day are quick

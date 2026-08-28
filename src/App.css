@@ -1214,6 +1214,13 @@ tr.editing-row td { background: var(--primary-sub); }
   padding: 4px 0;
 }
 
+.page-loading {
+  text-align: center;
+  padding: 60px 16px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 /* ===== Empty State ===== */
 .empty-state {
   text-align: center;

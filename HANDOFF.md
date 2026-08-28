@@ -35,25 +35,27 @@ KakeiboEntry = {
 
 ## データの保存範囲・保存方式（最重要・必ず確認すること）
 
-**家計簿の実データ（`entries`＝収支記録、`categoryMap`＝科目設定）はSupabaseなどのクラウドDBには一切保存されておらず、ログインしているブラウザの`localStorage`にのみ保存されている。**
+**家計簿の実データ（`entries`＝収支記録、`categoryMap`＝科目設定）はSupabaseのPostgreSQLデータベースに保存されている。** localStorageには一切保存しない（`src/App.tsx`に`saveEntries`/`saveCategoryMap`の呼び出しは無い）。
 
-- 保存キー（`src/storage.ts`）: `kakeibo-${uid}-entries`、`kakeibo-${uid}-category-map`（`uid`はSupabase AuthのユーザーID）。ユーザーごとにキーを分けているだけで、保存場所自体はローカルの`localStorage`。
-- 保存タイミング: `App.tsx`内の`useEffect`で、`entries`または`categoryMap`が変化するたびに即座に`localStorage`へ書き込み（同期的、クラウドへのアップロードは一切行わない）。
-- テーマ設定（`kakeibo-theme`）はユーザーIDに紐付かない共通キーで保存。
+- テーブル定義: `supabase/schema.sql`（`public.kakeibo_entries`＝収支記録、`public.kakeibo_settings`＝ユーザーごとの科目設定）。初回セットアップ時にSupabaseのSQL Editorで一度だけ実行する。
+- アクセス制御: Row Level Security（RLS）を有効化し、`auth.uid() = user_id`のポリシーで「自分の行しか見えない・書き込めない」を保証。同じSupabaseプロジェクトを使う他アプリ（tangocho等）とはテーブル自体が別なので混ざらない。
+- 読み書きの実装: `src/db.ts`（`fetchEntries`/`insertEntry`/`updateEntry`/`deleteEntry`/`deleteAllEntries`/`fetchCategoryMap`/`saveCategoryMap`）。`App.tsx`はこれらを呼び、画面は即座に更新した上でクラウド書き込みを行う「楽観的更新」方式。書き込みが失敗した場合は画面上の変更を元に戻し、エラーメッセージを表示する。
+- テーマ設定（`kakeibo-theme`）のみ、端末ごとの見た目の好みなのでこれまで通り`localStorage`に保存（クラウド同期しない）。
+- `src/storage.ts`の`loadEntries`/`loadCategoryMap`（localStorage読み込み）は、後述の「ローカルデータのクラウド移行」機能のためだけに残してある。新規の保存には使われていない。
 
-### 複数端末で使うとどうなるか（重要な制約）
+### 複数端末で使うとどうなるか
 
-- **同期されない。** 同じアカウントでログインしても、PCのブラウザとスマホのブラウザ、あるいは同じ端末でもブラウザを変える（Safari→Chrome）と、家計簿データは完全に別々になる。
-- ブラウザのキャッシュ削除、シークレットモード、別端末での初回ログインなどでは「データが0件の状態」になる。復元手段はない（バックアップの仕組みが存在しない）。
-- 実質的に「1ブラウザ＝1つの家計簿データ」という設計。複数端末で同じ家計簿を見たい場合は、都度Dataページの「CSVエクスポート/インポート」で手動で持ち運ぶしかない。
-- ログアウトすると画面上の`entries`/`categoryMap`はクリアされる（`App.tsx`の`handleLogout`）が、`localStorage`自体は消えない。同じ端末・同じブラウザで再ログインすれば、`uid`が同じである限り同じキーからまた読み込まれる。
+- **同期される。** 同じアカウントでログインすれば、PC・スマホ・タブレット、どのブラウザからでも同じデータが見える。旧方式（localStorage）で発生していた「ブラウザを変えるとデータが消えたように見える」問題は解消。
+- 新規記録のID生成は`crypto.randomUUID()`に変更済み（旧`Date.now()`ベースの文字列IDだと複数端末からの同時書き込みで衝突しうるため）。
+- **移行が必要な既存データ**: 旧localStorage方式で入力していたデータは自動では移らない。Dataページの「このブラウザのローカルデータを移行」ボタン（`handleMigrateLocal`、`App.tsx`）で、そのブラウザに残っているlocalStorageのデータを読み込み、クラウドにまだ無いIDのものだけをアップロードする（重複防止）。家族など複数人で使っている場合、各自が自分の使っている入口（Safari／Brave／ホーム画面アプリ等）でこのボタンを一度ずつ押す必要がある。
+- 通信エラー時（オフライン等）は保存・編集・削除が失敗し、画面上も元の状態に戻ってエラーメッセージが出る。**完全オフライン対応はしていない**（ネット接続必須）。
 
 ## 認証の仕組み
 
-- Supabase Auth（メールアドレス＋パスワード）のみ。新規登録フォームはこのアプリには無く（`src/pages/Login.tsx`にはログインとパスワードリセットのみ）、アカウント作成は別途Supabase側かGuinness家ポータル経由と思われる（要確認）。
+- Supabase Auth（メールアドレス＋パスワード）。**新規登録フォームは意図的にこのアプリには無い**（`src/pages/Login.tsx`にはログインとパスワードリセットのみ）。家計簿という金銭データの性質上、招待制を維持する方針で、アカウント発行はSupabaseダッシュボードの Authentication → Users → Invite user から管理者が行う。
 - ログイン・パスワードリセットのUIロジックは`src/pages/Login.tsx`。認証状態の監視（ログイン/ログアウトの検知、ユーザーIDの取得）は`src/App.tsx`の`supabase.auth.getSession()` / `onAuthStateChange`。
-- **Supabaseはこのアプリでは認証（ユーザーの識別）専用に使われているだけで、家計簿データ本体のやり取りには一切使われていない。**
-- 使用プロジェクト: プロジェクトB（`zkqvqztadbzqwdwqhyjw`）。ギネス家ポータル・HealthDashboardと共有のSupabaseプロジェクト（同じ認証基盤を複数アプリで使い回している）。ユーザーIDでデータキーを分けているため、他アプリのユーザーデータと混ざることはない設計。
+- **Supabaseは認証とデータ保存（PostgreSQL）の両方に使われている。** ユーザーの識別（`auth.uid()`）がそのままRLSポリシーの主キーになっており、認証とデータアクセス制御が一体になっている。
+- 使用プロジェクト: プロジェクトB（`zkqvqztadbzqwdwqhyjw`）。ギネス家ポータル・HealthDashboard・tangochoと共有のSupabaseプロジェクト（同じ認証基盤を複数アプリで使い回している）。テーブル名を`kakeibo_`接頭辞で分けているため、他アプリのテーブルと混ざることはない。
 
 ## 技術構成
 
@@ -74,25 +76,21 @@ KakeiboEntry = {
 
 ## 既知の注意点（やっていないこと・要検討事項）
 
-1. **`src/supabase.ts`にSupabaseの接続キー（URLとanonキー）がフォールバック値としてハードコードされたまま残っている。**
-   ```
-   const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || 'https://...' // ハードコード
-   const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || 'eyJ...' // ハードコード
-   ```
-   GitHub Actions側（`deploy.yml`）は既にSecretsから正しく環境変数を注入する仕組みになっているため、このハードコードされたフォールバック値は本来不要。しかも公開リポジトリ（`hei86gns/Kakeibo-app`）に既にコミット済みで、GitHub上で誰でも閲覧可能な状態。過去に「削除すべき」という指摘があったが、**まだ対応されていない**。
-   - 実害の範囲: anonキーはSupabaseの設計上「公開されても安全」とされる類のキー（Row Level Securityで保護する前提）だが、URLとセットで公開されていることでプロジェクトの存在自体が第三者に分かる。実際の値そのものはこのメモには書かない。
-   - 対応するなら: フォールバック値を削除し、環境変数が無い場合はエラーを出す（またはビルドを失敗させる）形にするのがモダンな対応。
-2. **複数端末同期がない**（上記「データの保存範囲」参照）。tangochoやWorkout_Appのような「クラウド同期＋件数比較でのマージ」といった仕組みはこのアプリには存在しない。もし将来「スマホでも同じ家計簿を見たい」となった場合は、entriesをSupabaseの`user_data`テーブルなどに保存する設計変更が必要（tangochoの同期実装が参考になる）。
-3. **バックアップ手段が手動のCSVエクスポートのみ**。自動バックアップやクラウド保存が無いため、ブラウザのデータ削除・端末の初期化・アプリのアンインストールなどでデータが消える可能性がある。
-4. 新規アカウント作成のUIがこのアプリ内に見当たらない（ログイン画面はログイン＋パスワードリセットのみ）。アカウントの作り方は要確認。
+1. **オフライン非対応。** ネット接続が無い状態では保存・編集・削除ができない（通信エラーで画面が元に戻り、エラーメッセージが出る）。オフラインキャッシュや後からの再送信は実装していない。
+2. **Supabase無料プランは7日間アクセスが無いと自動で一時停止する。** 再開はSupabaseダッシュボードのボタン一つ・数分で完了するが、久しぶりにアプリを開くと「データの読み込みに失敗しました」のようなエラーになりうる。その場合はSupabaseダッシュボードでプロジェクトが一時停止していないか確認する。
+3. **バックアップ手段が手動のCSVエクスポートのみ。** クラウドDBなので単純な「端末紛失で消える」リスクは無くなったが、誤って「すべてのデータを削除」した場合の復元手段は無い（確認ダイアログはある）。定期的なCSVエクスポートを推奨。
+4. **新規アカウント作成のUIは意図的に無い。** 招待制の設計（上記「認証の仕組み」参照）。
+5. **`supabase/schema.sql`は初回セットアップ時に手動でSupabaseのSQL Editorに貼り付けて実行する必要がある。** マイグレーションツール（Supabase CLI等）は導入していないため、テーブル定義を変更した場合は`schema.sql`を更新した上で、既存プロジェクトのSQL Editorでも該当するALTER文などを手動実行する必要がある。
 
 ## 保存場所・関連ファイル一覧
 
 - フォルダ: `~/Desktop/Kakeibo_App/`
 - エントリーポイント: `src/main.tsx` → `src/App.tsx`（ページ切り替え・認証状態・全体のstate管理を担う中心ファイル）
 - 画面コンポーネント: `src/pages/Login.tsx`、`Home.tsx`、`Calendar.tsx`、`History.tsx`、`Stats.tsx`、`Data.tsx`
-- データ保存: `src/storage.ts`（localStorage読み書き）
-- Supabase接続: `src/supabase.ts`（認証専用）
+- データ保存（クラウドDB）: `src/db.ts`（Supabaseへの読み書き関数一式）
+- データ保存（旧・移行専用）: `src/storage.ts`（localStorage読み書き。今は「ローカルデータのクラウド移行」機能でのみ使用）
+- Supabase接続: `src/supabase.ts`（クライアント初期化。環境変数が無いとエラーを投げる）
+- DBスキーマ: `supabase/schema.sql`（初回セットアップ時にSQL Editorで実行）
 - 型定義: `src/types.ts`
 - 初期科目データ・定数: `src/constants.ts`
 - ユーティリティ関数（Excel日付パース、金額抽出など）: `src/utils.ts`

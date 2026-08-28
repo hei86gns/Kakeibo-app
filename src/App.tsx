@@ -3,7 +3,14 @@ import type { User } from '@supabase/supabase-js'
 import dogImg from './assets/dog.png'
 import { supabase } from './supabase'
 import type { CategoryMap, ColorTheme, KakeiboEntry, PageId } from './types'
-import { loadCategoryMap, loadEntries, loadTheme, saveCategoryMap, saveEntries, saveTheme } from './storage'
+import { loadTheme, saveTheme } from './storage'
+import { loadEntries as loadLocalEntries, loadCategoryMap as loadLocalCategoryMap } from './storage'
+import { DEFAULT_CATEGORY_MAP } from './constants'
+import {
+  fetchEntries, fetchCategoryMap,
+  insertEntry, insertEntries, updateEntry, deleteEntry, deleteAllEntries,
+  saveCategoryMap as saveCategoryMapRemote,
+} from './db'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import Calendar from './pages/Calendar'
@@ -27,9 +34,13 @@ const NAV: { id: PageId; label: string; icon: string }[] = [
   { id: 'data',     label: 'データ',     icon: '⚙️' },
 ]
 
+const NETWORK_ERROR_MSG = '通信に失敗しました。電波状況をご確認のうえ、もう一度お試しください。'
+
 export default function App() {
   const [user, setUser]               = useState<User | null>(null)
   const [authReady, setAuthReady]     = useState(false)
+  const [dataLoading, setDataLoading] = useState(false)
+  const [dataLoadError, setDataLoadError] = useState('')
   const [entries, setEntries]         = useState<KakeiboEntry[]>([])
   const [categoryMap, setCategoryMap] = useState<CategoryMap>({})
   const [theme, setTheme]             = useState<ColorTheme>(() => loadTheme())
@@ -39,35 +50,44 @@ export default function App() {
   const [presetDate, setPresetDate]     = useState<string | null>(null)
   const [cameFromCalendar, setCameFromCalendar] = useState(false)
 
-  // Auth listener
+  // Auth listener — only tracks who's logged in; data is fetched separately below
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const u = session?.user ?? null
-      setUser(u)
-      if (u) {
-        setEntries(loadEntries(u.id))
-        setCategoryMap(loadCategoryMap(u.id))
-      }
+      setUser(session?.user ?? null)
       setAuthReady(true)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const u = session?.user ?? null
-      setUser(u)
-      if (u) {
-        setEntries(loadEntries(u.id))
-        setCategoryMap(loadCategoryMap(u.id))
-      }
+      setUser(session?.user ?? null)
     })
     return () => subscription.unsubscribe()
   }, [])
 
+  // Load this user's data from Supabase whenever they log in
   useEffect(() => {
-    if (user) saveEntries(user.id, entries)
-  }, [entries, user])
-
-  useEffect(() => {
-    if (user) saveCategoryMap(user.id, categoryMap)
-  }, [categoryMap, user])
+    if (!user) {
+      setEntries([])
+      setCategoryMap({})
+      return
+    }
+    let cancelled = false
+    setDataLoading(true)
+    setDataLoadError('')
+    Promise.all([fetchEntries(user.id), fetchCategoryMap(user.id)])
+      .then(([remoteEntries, remoteMap]) => {
+        if (cancelled) return
+        setEntries(remoteEntries)
+        setCategoryMap(remoteMap ?? { ...DEFAULT_CATEGORY_MAP })
+      })
+      .catch((err) => {
+        console.error(err)
+        if (cancelled) return
+        setDataLoadError(NETWORK_ERROR_MSG)
+      })
+      .finally(() => {
+        if (!cancelled) setDataLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [user])
 
   // Auto-dismiss notification after 5 s
   useEffect(() => {
@@ -90,14 +110,96 @@ export default function App() {
   }, [entries, categoryMap])
 
   const handleTheme = (t: ColorTheme) => { setTheme(t); saveTheme(t) }
-  const handleAdd    = (e: KakeiboEntry) => setEntries((prev) => [e, ...prev])
-  const handleUpdate = (updated: KakeiboEntry) =>
+
+  // Every write below is optimistic: the screen updates immediately,
+  // and rolls back with an error message if the Supabase call fails.
+  const handleAdd = async (entry: KakeiboEntry) => {
+    setEntries((prev) => [entry, ...prev])
+    if (!user) return
+    try {
+      await insertEntry(user.id, entry)
+    } catch (err) {
+      console.error(err)
+      setEntries((prev) => prev.filter((e) => e.id !== entry.id))
+      setMessage(NETWORK_ERROR_MSG)
+    }
+  }
+
+  const handleUpdate = async (updated: KakeiboEntry) => {
+    const previous = entries.find((e) => e.id === updated.id)
     setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
-  const handleDelete = (id: string) => {
+    if (!user) return
+    try {
+      await updateEntry(updated)
+    } catch (err) {
+      console.error(err)
+      if (previous) setEntries((prev) => prev.map((e) => (e.id === updated.id ? previous : e)))
+      setMessage(NETWORK_ERROR_MSG)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    const previous = entries.find((e) => e.id === id)
     setEntries((prev) => prev.filter((e) => e.id !== id))
     if (editingEntry?.id === id) setEditingEntry(null)
+    if (!user) return
+    try {
+      await deleteEntry(id)
+    } catch (err) {
+      console.error(err)
+      if (previous) setEntries((prev) => [previous, ...prev])
+      setMessage(NETWORK_ERROR_MSG)
+    }
   }
-  const handleImport = (newEntries: KakeiboEntry[]) => setEntries((prev) => [...prev, ...newEntries])
+
+  const handleImport = async (newEntries: KakeiboEntry[]) => {
+    setEntries((prev) => [...newEntries, ...prev])
+    if (!user) return
+    try {
+      await insertEntries(user.id, newEntries)
+    } catch (err) {
+      console.error(err)
+      setMessage('インポートしたデータのアップロードに失敗しました。' + NETWORK_ERROR_MSG)
+    }
+  }
+
+  // One-time helper: pulls whatever this browser had saved locally
+  // (from before the cloud migration) and uploads it, skipping any
+  // entry whose id is already present in the cloud.
+  const handleMigrateLocal = async () => {
+    if (!user) return
+    const localEntries = loadLocalEntries(user.id)
+    const localMap = loadLocalCategoryMap(user.id)
+    if (localEntries.length === 0) {
+      setMessage('このブラウザには移行できるローカルデータが見つかりませんでした。')
+      return
+    }
+    const existingIds = new Set(entries.map((e) => e.id))
+    const toUpload = localEntries.filter((e) => !existingIds.has(e.id))
+    try {
+      if (toUpload.length > 0) {
+        await insertEntries(user.id, toUpload)
+        setEntries((prev) =>
+          [...toUpload, ...prev].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)),
+        )
+      }
+      const mergedMap: CategoryMap = { ...categoryMap }
+      Object.entries(localMap).forEach(([cat, subs]) => {
+        mergedMap[cat] = Array.from(new Set([...(mergedMap[cat] ?? []), ...subs]))
+      })
+      setCategoryMap(mergedMap)
+      await saveCategoryMapRemote(user.id, mergedMap)
+      setMessage(
+        toUpload.length > 0
+          ? `${toUpload.length} 件のデータをクラウドに移行しました。`
+          : 'このブラウザのデータはすでにクラウドに反映済みでした。',
+      )
+    } catch (err) {
+      console.error(err)
+      setMessage('移行中にエラーが発生しました。' + NETWORK_ERROR_MSG)
+    }
+  }
+
   const handleStartEdit = (entry: KakeiboEntry) => {
     setEditingEntry(entry)
     setPage('home')
@@ -118,16 +220,36 @@ export default function App() {
     if (id !== 'home') setCameFromCalendar(false)
     setPage(id)
   }
-  const handleClearAll = () => {
+
+  const handleClearAll = async () => {
     if (!window.confirm('保存されているすべての家計簿データを削除しますか？\nこの操作は元に戻せません。')) return
+    const previous = entries
     setEntries([])
+    if (user) {
+      try {
+        await deleteAllEntries(user.id)
+      } catch (err) {
+        console.error(err)
+        setEntries(previous)
+        setMessage(NETWORK_ERROR_MSG)
+        return
+      }
+    }
     setMessage('すべてのデータを削除しました。')
   }
+
+  const handleCategoryMapChange = (map: CategoryMap) => {
+    setCategoryMap(map)
+    if (!user) return
+    saveCategoryMapRemote(user.id, map).catch((err) => {
+      console.error(err)
+      setMessage(NETWORK_ERROR_MSG)
+    })
+  }
+
   const handleLogout = async () => {
     if (!window.confirm('ログアウトしますか？')) return
     await supabase.auth.signOut()
-    setEntries([])
-    setCategoryMap({})
   }
 
   // Loading state
@@ -174,45 +296,57 @@ export default function App() {
           {message}
         </div>
       )}
+      {dataLoadError && (
+        <div className="notification" onClick={() => setDataLoadError('')} role="status">
+          {dataLoadError}
+        </div>
+      )}
 
       {/* ===== Page Content ===== */}
       <main className="main-content">
-        {page === 'home' && (
-          <Home
-            onAdd={handleAdd}
-            onUpdate={handleUpdate}
-            categoryMap={categoryMap}
-            sortedCategories={sortedCategories}
-            descriptions={descriptions}
-            entries={entries}
-            onDelete={handleDelete}
-            editingEntry={editingEntry}
-            onStartEdit={handleStartEdit}
-            onEndEdit={() => setEditingEntry(null)}
-            presetDate={presetDate}
-            onPresetConsumed={() => setPresetDate(null)}
-            onCancelled={handleHomeCancelled}
-            setMessage={setMessage}
-          />
-        )}
-        {page === 'calendar' && (
-          <Calendar entries={entries} onSelectDate={handleSelectDate} />
-        )}
-        {page === 'history' && (
-          <History entries={entries} onDelete={handleDelete} onEdit={handleStartEdit} />
-        )}
-        {page === 'stats' && (
-          <Stats entries={entries} />
-        )}
-        {page === 'data' && (
-          <Data
-            entries={entries}
-            categoryMap={categoryMap}
-            onImport={handleImport}
-            onCategoryMapChange={setCategoryMap}
-            onClearAll={handleClearAll}
-            setMessage={setMessage}
-          />
+        {dataLoading ? (
+          <div className="page-loading">読み込み中…</div>
+        ) : (
+          <>
+            {page === 'home' && (
+              <Home
+                onAdd={handleAdd}
+                onUpdate={handleUpdate}
+                categoryMap={categoryMap}
+                sortedCategories={sortedCategories}
+                descriptions={descriptions}
+                entries={entries}
+                onDelete={handleDelete}
+                editingEntry={editingEntry}
+                onStartEdit={handleStartEdit}
+                onEndEdit={() => setEditingEntry(null)}
+                presetDate={presetDate}
+                onPresetConsumed={() => setPresetDate(null)}
+                onCancelled={handleHomeCancelled}
+                setMessage={setMessage}
+              />
+            )}
+            {page === 'calendar' && (
+              <Calendar entries={entries} onSelectDate={handleSelectDate} />
+            )}
+            {page === 'history' && (
+              <History entries={entries} onDelete={handleDelete} onEdit={handleStartEdit} />
+            )}
+            {page === 'stats' && (
+              <Stats entries={entries} />
+            )}
+            {page === 'data' && (
+              <Data
+                entries={entries}
+                categoryMap={categoryMap}
+                onImport={handleImport}
+                onCategoryMapChange={handleCategoryMapChange}
+                onClearAll={handleClearAll}
+                onMigrateLocal={handleMigrateLocal}
+                setMessage={setMessage}
+              />
+            )}
+          </>
         )}
       </main>
 
