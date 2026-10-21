@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent } from 'react'
 import * as XLSX from 'xlsx'
 import type { CategoryMap, KakeiboEntry } from '../types'
-import { normalizeHeader, parseExcelDate } from '../utils'
+import { normalizeHeader, parseExcelDate, today } from '../utils'
 
 const COLUMNS = {
   period: '期間', asset: '資産', category: '分類', subcategory: '小分類',
@@ -32,7 +32,7 @@ const handleExport = (entries: KakeiboEntry[]) => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `kakeibo_${new Date().toISOString().slice(0, 10)}.csv`
+  a.download = `kakeibo_${today()}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
