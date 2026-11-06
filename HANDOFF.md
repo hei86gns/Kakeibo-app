@@ -84,7 +84,7 @@ KakeiboEntry = {
 
 ## 保存場所・関連ファイル一覧
 
-- フォルダ: `~/Desktop/Kakeibo_App/`
+- フォルダ: `~/Dev/Kakeibo_App/`
 - エントリーポイント: `src/main.tsx` → `src/App.tsx`（ページ切り替え・認証状態・全体のstate管理を担う中心ファイル）
 - 画面コンポーネント: `src/pages/Login.tsx`、`Home.tsx`、`Calendar.tsx`、`History.tsx`、`Stats.tsx`、`Data.tsx`
 - データ保存（クラウドDB）: `src/db.ts`（Supabaseへの読み書き関数一式）
